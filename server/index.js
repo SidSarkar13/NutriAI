@@ -62,4 +62,36 @@ In one short, casual sentence, tell the user whether swapping to the alternative
   }
 });
 
+app.post("/recipe", async (req, res) => {
+  const { remaining, equipment, skill } = req.body;
+
+  const prompt = `A gym-goer wants to cook a meal at home to hit their remaining daily macros.
+Remaining today: ${remaining.protein}g protein, ${remaining.fibre}g fibre, ${remaining.carbs}g carbs.
+Equipment available: ${equipment}.
+Cooking skill: ${skill}.
+
+Create ONE simple recipe suited to their equipment and skill that gets reasonably close to those remaining macros without wildly overshooting.
+
+Return ONLY valid JSON, no other text, in this exact shape:
+{
+  "recipe_name": "",
+  "steps": ["short step 1", "short step 2"],
+  "ingredients": [
+    {"name": "", "quantity": "", "protein_g": 0, "carbs_g": 0, "fibre_g": 0}
+  ]
+}
+
+Give per-ingredient macro estimates for the actual quantity listed (not per 100g) so they can be summed into a total.`;
+
+  try {
+    const result = await model.generateContent(prompt);
+    const text = result.response.text().trim();
+    const parsed = JSON.parse(text.replace(/```json|```/g, "").trim());
+    res.json(parsed);
+  } catch (err) {
+    console.error(err);
+    res.status(500).json({ error: "recipe generation failed" });
+  }
+});
+
 app.listen(3001, () => console.log("Server running on port 3001"));
